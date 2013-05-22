@@ -1,0 +1,4 @@
+onionconfig
+===========
+
+Inheritable configuration
