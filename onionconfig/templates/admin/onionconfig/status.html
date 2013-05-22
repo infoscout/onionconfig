@@ -1,0 +1,68 @@
+{% extends "admin/base_site.html" %}
+{% load json_pretify %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+	
+	<h1>Onionconfig viewer</h1>
+		<ul class="object-tools">          
+			<li><a href="#" onclick="javascript:$('#reload_form').submit()">Reload</a></li>
+		</ul>
+
+	<form action="" method="GET">
+		<div style="padding: 8px; border: 1px solid #CCC; margin-bottom: 15px; background-color: #f7f7f7;">
+		<table>
+			{{ filter_form }}
+		</table>
+		<input type="submit" value="GO" />
+		</div>
+	</form>
+
+	<form action="" method="GET" style="display:none" id="reload_form">
+		<input type="hidden" name="reload" />
+		<input type="submit" value="RELOAD" />
+	</form>
+
+	<script>
+		function toggle_layers() {
+			var isHide = $("#operation").text() == "Hide"
+			$("table#layer_list tr.inactive_layer").toggle(!isHide)
+			$("#operation").text(isHide?"Show":"Hide")
+		}
+	</script>
+	<div>
+		<h2 onclick="javascript:$('#applicable-layers').toggle()" style="cursor:pointer">Applicable layers</h2>
+		<div id="applicable-layers" style="display:none">
+			<ul class="object-tools">          
+				<li><a href="#" onclick="javascript:toggle_layers()"><span id="operation">Hide</span> unused</a></li>
+			</ul>
+
+			<table cellspacing="0" id="layer_list" width="100%">
+			<thead>
+				<tr>
+					<th scope="col">Name</th>
+					<th scope="col">Priority</th>
+					<th scope="col">filename</th>
+					<th scope="col">used</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for layer in layers %}
+				<tr class="{% cycle 'row1' 'row2' %} {{layer.is_active|yesno:',inactive_layer'}}">
+					<td>{{layer.name}}</td>
+					<td>{{layer.priority}}</td>
+					<td>{{layer.filename}}</td>
+					<td>{{layer.is_active|yesno:"YES,-"}}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+			</table>
+		</div>
+	</div>
+
+	<h2>Config view</h2> 
+	<div style="border-style:solid;border-color:#800517;border-width:2px; padding: 5px; overflow: scroll;"><pre>{{view|json_pretify|escape}}</pre>
+	</div>
+	
+{% endblock %}
