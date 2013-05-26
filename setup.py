@@ -1,12 +1,13 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from isc_ops.setup_tools import setup, current_version
 
 setup(name='onionconfig',
     packages=find_packages(),  
     description = 'Inheritable configuration',
     url = 'http://github.com/infoscout/onionconfig',
-    #version = '0.1dev',    
+    version = current_version(),    
     install_requires=[
-        'django>=1.4',
+        'django==1.4',
     ]
 )
 
