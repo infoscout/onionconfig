@@ -5,7 +5,7 @@ setup(name='onionconfig',
     packages=find_packages(),  
     description = 'Inheritable configuration',
     url = 'http://github.com/infoscout/onionconfig',
-    version = current_version(),    
+    version = '1.0',    
     install_requires=[
         'django==1.4',
     ]
