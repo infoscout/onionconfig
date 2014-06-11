@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from onionconfig.config import get_config
+from onionconfig.config import get_config, INVALID_CONFIG_FILES
 from onionconfig.signals import onion_config_updated
 from onionconfig.admin.forms import FilterForm
 from onionconfig.admin.helpers import create_layer_list
+from django.contrib import messages
 
 def view_status(request):
     
@@ -27,6 +28,9 @@ def view_status(request):
                'view': get_config(path, **filters),
                'layers': create_layer_list(filters)
                }
+    
+    for fname in INVALID_CONFIG_FILES:
+        messages.add_message(request, messages.ERROR, 'Invalid config file:' + fname)
     
     return render(request, 'admin/onionconfig/status.html', context)
     

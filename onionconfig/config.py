@@ -143,6 +143,8 @@ class Layer(object):
 def _get_config_root():
     return config.directory
 
+INVALID_CONFIG_FILES = []
+
 @memoize
 def get_layers():
     '''
@@ -155,6 +157,8 @@ def get_layers():
         try:
             res.append(Layer(fname))
         except Exception:
+            global INVALID_CONFIG_FILES
+            INVALID_CONFIG_FILES.append(fname)
             traceback.print_exc()
             logger.error("Invalid configuration layer")
     res = [item[1] for item in sorted((config.get_priority(), config) for config in res)]
