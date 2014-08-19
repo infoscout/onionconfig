@@ -10,6 +10,5 @@ setup(name='onionconfig',
     install_requires=[
         'django==1.4',
     ]
-    # requires: isc-admin
 )
 
