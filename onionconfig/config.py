@@ -71,7 +71,7 @@ class Layer(object):
         #data = simplejson.load(open(fname, "rb"))
         assert isinstance(data, dict)
         filters = Layer._normalize_filters(data.pop("__filter", None))
-        self.priority = data.pop("__priority", None) or max(max([0]+[config.dimensions[dim].priority_class for dim in filter_.keys()]) for filter_ in filters)
+        self.priority = data.pop("__priority", None) or max(sum([config.dimensions[dim].priority_class for dim in filter_.keys()]) for filter_ in filters)
         self.filters = Layer._expand_filters(filters)
         self.name = data.pop("__name", None) or os.path.splitext(os.path.basename(fname))[0]
         self.data = data
