@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
 from isc_admin import AdminApp
 from onionconfig.admin.views import view_status
 
