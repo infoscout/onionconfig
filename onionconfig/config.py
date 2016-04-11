@@ -32,7 +32,7 @@ class Config(object):
     """
     Reloadable main config
     """
-    CFG_LMOD_STATS_FILE = 'cfg_stats'
+    CFG_LMOD_STATS_FILE = 'cfg.stats'
     
     dimensions = {}
     context = {}
