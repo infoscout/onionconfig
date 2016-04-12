@@ -23,6 +23,8 @@ from onionconfig.special_values import DynamicValue, ExplicitNone,\
 from copy import deepcopy
 from django.conf import settings
 import traceback
+import json
+import email
 
 logger = logging.getLogger("onionconfig")
 
@@ -30,10 +32,13 @@ class Config(object):
     """
     Reloadable main config
     """
+    CFG_LMOD_STATS_FILE = 'cfg.stats'
+    
     dimensions = {}
     context = {}
     expansions = []
     directory = None
+    cfg_lmod = {}
     
     lazy_init_module = None
     
@@ -61,6 +66,11 @@ class Config(object):
         if os.path.isfile(dir_):
             dir_ = os.path.dirname(dir_)
         self.directory = dir_
+        if os.path.isfile(os.path.join(self.directory, self.CFG_LMOD_STATS_FILE)):
+            try:
+                self.cfg_lmod = json.load(open(os.path.join(self.directory, self.CFG_LMOD_STATS_FILE), 'r'))
+            except:
+                logger.error('Unable to load cfg lmods for dir %s', self.directory)
 
 class Layer(object):
     '''
@@ -75,6 +85,12 @@ class Layer(object):
         self.filters = Layer._expand_filters(filters)
         self.name = data.pop("__name", None) or os.path.splitext(os.path.basename(fname))[0]
         self.data = data
+        self.lmod = None
+        try:
+            lmod_str = config.cfg_lmod[self.name]
+            self.lmod = email.utils.parsedate_tz(lmod_str) #format RFC 2822: "Mon Jul 20 14:58:57 2015 -0700"
+        except:
+            logging.error("No onion config lmod for layer with name: %s", self.name)
         self._dbg_fname = fname
     
     @staticmethod
