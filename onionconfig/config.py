@@ -70,7 +70,7 @@ class Config(object):
             try:
                 self.cfg_lmod = json.load(open(os.path.join(self.directory, self.CFG_LMOD_STATS_FILE), 'r'))
             except:
-                logger.error('Unable to load cfg lmods for dir %s' % self.directory)
+                logger.error('Unable to load cfg lmods for dir %s', self.directory)
 
 class Layer(object):
     '''
@@ -90,7 +90,7 @@ class Layer(object):
             lmod_str = config.cfg_lmod[self.name]
             self.lmod = email.utils.parsedate_tz(lmod_str) #format RFC 2822: "Mon Jul 20 14:58:57 2015 -0700"
         except:
-            logging.error("No onion config lmod for layer with name: %s" % self.name)
+            logging.error("No onion config lmod for layer with name: %s", self.name)
         self._dbg_fname = fname
     
     @staticmethod
