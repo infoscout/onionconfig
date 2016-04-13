@@ -25,6 +25,7 @@ from django.conf import settings
 import traceback
 import json
 import email
+from datetime import datetime
 
 logger = logging.getLogger("onionconfig")
 
@@ -88,7 +89,9 @@ class Layer(object):
         self.lmod = None
         try:
             lmod_str = config.cfg_lmod[self.name]
-            self.lmod = email.utils.parsedate_tz(lmod_str) #format RFC 2822: "Mon Jul 20 14:58:57 2015 -0700"
+            timetuple = email.utils.parsedate_tz(lmod_str) #format RFC 2822: "Mon Jul 20 14:58:57 2015 -0700"
+            if timetuple is not None:
+                self.lmod = datetime.fromtimestamp(email.utils.mktime_tz(timetuple))
         except:
             logging.error("No onion config lmod for layer with name: %s", self.name)
         self._dbg_fname = fname
