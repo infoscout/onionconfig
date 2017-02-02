@@ -13,6 +13,6 @@ setup(
     url='http://github.com/infoscout/onionconfig',
     version=version,
     install_requires=[
-        'django>=1.4',
+        'Django>=1.8',
     ]
 )
