@@ -33,12 +33,12 @@ class Config(object):
     """
     Reloadable main config
     """
-
+    
     dimensions = {}
     context = {}
     expansions = []
     directory = None
-
+    
     lazy_init_module = None
     
     def __init__(self, module_name=None):
@@ -151,17 +151,13 @@ def _get_config_root():
 INVALID_CONFIG_FILES = []
 
 @memoize
-def get_layers(config_type=None):
+def get_layers():
     '''
     Load all the configuration files
     '''
     # can't yield, cause currently used memoize is not generator friendly
     res = []
-    if config_type:
-        path = os.path.join(_get_config_root(), config_type, "*.cfg")
-    else:
-        path = os.path.join(_get_config_root(), "*.cfg")
-
+    path = os.path.join(_get_config_root(), "*.cfg")
     for fname in glob.glob(path):
         try:
             res.append(Layer(fname))
@@ -175,15 +171,15 @@ def get_layers(config_type=None):
     return res
 
 
-def get_applicable_layers(config_type, filters):
-    return [layer for layer in get_layers(config_type) if layer.matches_filter(filters)]
+def get_applicable_layers(filters):
+    return [layer for layer in get_layers() if layer.matches_filter(filters)]
 
 @memoize
-def _get_full_config(config_type, filters):
+def _get_full_config(filters):
     '''
     Get all applicable config layers for filter
     '''
-    # print "get_full_config for ", filters
+#    print "get_full_config for ", filters
     def unify_config(high, low):
         '''
         Merge two layers of configuration.
@@ -220,14 +216,13 @@ def _get_full_config(config_type, filters):
             elif type(value) == DictType:
                 finalize_config(value)
      
-    real_configs = get_applicable_layers(config_type, filters)
+    real_configs = get_applicable_layers(filters)
     real_configs = [item.data for item in real_configs]
     if len(real_configs)==0:
         return None
     real_config = reduce(unify_config, real_configs, {})
     finalize_config(real_config)
     return real_config
-
 
 def _normalize_filter(filters):
     '''
@@ -236,13 +231,12 @@ def _normalize_filter(filters):
     '''
     return dict((k, str(v)) for k,v in filters.items() if v!=None)
 
-
-def get_config(path, config_type=None, **filters):
+def get_config(path, **filters):
     '''
     Get a subhierarchy of configuration
     '''
     filters = _normalize_filter(filters)
-    config = _get_full_config(config_type, filters)
+    config = _get_full_config(filters)
     if isinstance(path, unicode):
         path = path.encode("UTF-8")
     if path in (None, ""):
@@ -250,7 +244,6 @@ def get_config(path, config_type=None, **filters):
     elif isinstance(path, str):
         path = path.split(".")
     return reduce(lambda base, prop: base and base.get(prop), path, config)
-
 
 @receiver(signal=onion_config_updated)
 def config_update_receiver(sender, **kwargs):
