@@ -151,14 +151,14 @@ def _get_config_root():
 INVALID_CONFIG_FILES = []
 
 @memoize
-def get_layers(optional_directory=None):
+def get_layers(directory=None):
     '''
     Load all the configuration files
     '''
     # can't yield, cause currently used memoize is not generator friendly
     res = []
-    if optional_directory:
-        path = os.path.join(_get_config_root(), optional_directory, "*.cfg")
+    if directory:
+        path = os.path.join(_get_config_root(), directory, "*.cfg")
     else:
         path = os.path.join(_get_config_root(), "*.cfg")
 
@@ -175,11 +175,11 @@ def get_layers(optional_directory=None):
     return res
 
 
-def get_applicable_layers(optional_directory, filters):
-    return [layer for layer in get_layers(optional_directory) if layer.matches_filter(filters)]
+def get_applicable_layers(directory, filters):
+    return [layer for layer in get_layers(directory) if layer.matches_filter(filters)]
 
 @memoize
-def _get_full_config(optional_directory, filters):
+def _get_full_config(directory, filters):
     '''
     Get all applicable config layers for filter
     '''
@@ -220,7 +220,7 @@ def _get_full_config(optional_directory, filters):
             elif type(value) == DictType:
                 finalize_config(value)
 
-    real_configs = get_applicable_layers(optional_directory, filters)
+    real_configs = get_applicable_layers(directory, filters)
     real_configs = [item.data for item in real_configs]
     if len(real_configs)==0:
         return None
@@ -237,12 +237,12 @@ def _normalize_filter(filters):
     return dict((k, str(v)) for k,v in filters.items() if v!=None)
 
 
-def get_config(path, optional_directory=None, **filters):
+def get_config(path, directory=None, **filters):
     '''
     Get a subhierarchy of configuration
     '''
     filters = _normalize_filter(filters)
-    config = _get_full_config(optional_directory, filters)
+    config = _get_full_config(directory, filters)
     if isinstance(path, unicode):
         path = path.encode("UTF-8")
     if path in (None, ""):
