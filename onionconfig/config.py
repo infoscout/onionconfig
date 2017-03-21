@@ -33,14 +33,14 @@ class Config(object):
     """
     Reloadable main config
     """
-    
+
     dimensions = {}
     context = {}
     expansions = []
     directory = None
-    
+
     lazy_init_module = None
-    
+
     def __init__(self, module_name=None):
         self.lazy_init_module = module_name
 
@@ -51,7 +51,7 @@ class Config(object):
         if attr not in ["lazy_init_module","update"] and self.lazy_init_module != None:
             self.update(self.lazy_init_module)
         return super(Config, self).__getattribute__(attr)
-        
+
     def update(self, module_name):
         """
         Update config
@@ -68,7 +68,7 @@ class Config(object):
 
 class Layer(object):
     '''
-    Stores a set of settings for a filtering 
+    Stores a set of settings for a filtering
     '''
     def __init__(self, fname):
         data = eval(open(fname, "rb").read(), config.context)
@@ -81,7 +81,7 @@ class Layer(object):
         self.data = data
         self.lmod = None
         self._dbg_fname = fname
-    
+
     @staticmethod
     def _validate(data):
         if data.get("__priority", 1)<=0:
@@ -89,7 +89,7 @@ class Layer(object):
         for dim in set([key for filter_ in Layer._preprocess_filter(data.get("__filter")) for key in filter_.keys()]):
             if not config.dimensions.has_key(dim):
                 raise ValueError, "Unknown dimension used"
- 
+
     @staticmethod
     def _normalize_filters(filters):
         if filters == None:
@@ -103,7 +103,7 @@ class Layer(object):
                 value = set(value)
                 filter_[dim] = value
         return filters
-    
+
     @staticmethod
     def _expand_filters(filters):
         # TODO(vhermecz): order expansions to the right order
@@ -121,13 +121,13 @@ class Layer(object):
 #                    print "Expanded", filter_, "to", new_filter
             filters.extend(new_filters)
         return filters
- 
+
     @staticmethod
     def _preprocess_filters(filters):
         filters = Layer._normalize_filters(filters)
         filters = Layer._expand_filters(filters)
         return filters
-    
+
     def matches_filter(self, filter_):
         '''
         Detects if this layer matches the actual filter
@@ -151,13 +151,17 @@ def _get_config_root():
 INVALID_CONFIG_FILES = []
 
 @memoize
-def get_layers():
+def get_layers(directory=None):
     '''
     Load all the configuration files
     '''
     # can't yield, cause currently used memoize is not generator friendly
     res = []
-    path = os.path.join(_get_config_root(), "*.cfg")
+    if directory:
+        path = os.path.join(_get_config_root(), directory, "*.cfg")
+    else:
+        path = os.path.join(_get_config_root(), "*.cfg")
+
     for fname in glob.glob(path):
         try:
             res.append(Layer(fname))
@@ -171,19 +175,19 @@ def get_layers():
     return res
 
 
-def get_applicable_layers(filters):
-    return [layer for layer in get_layers() if layer.matches_filter(filters)]
+def get_applicable_layers(directory, filters):
+    return [layer for layer in get_layers(directory) if layer.matches_filter(filters)]
 
 @memoize
-def _get_full_config(filters):
+def _get_full_config(directory, filters):
     '''
     Get all applicable config layers for filter
     '''
-#    print "get_full_config for ", filters
+    # print "get_full_config for ", filters
     def unify_config(high, low):
         '''
         Merge two layers of configuration.
-        
+
         Dicts are blended together, for other constructs high is preferred
         '''
         assert high == None or isinstance(high, dict)
@@ -202,7 +206,7 @@ def _get_full_config(filters):
                     value = value.evaluate(filters)
             res[key] = value
         return res
-    
+
     def finalize_config(config):
         # TODO(vhermecz): skips postporcessing of lists
         for key, value in config.iteritems():
@@ -215,14 +219,15 @@ def _get_full_config(filters):
                 config[key] = value
             elif type(value) == DictType:
                 finalize_config(value)
-     
-    real_configs = get_applicable_layers(filters)
+
+    real_configs = get_applicable_layers(directory, filters)
     real_configs = [item.data for item in real_configs]
     if len(real_configs)==0:
         return None
     real_config = reduce(unify_config, real_configs, {})
     finalize_config(real_config)
     return real_config
+
 
 def _normalize_filter(filters):
     '''
@@ -231,12 +236,13 @@ def _normalize_filter(filters):
     '''
     return dict((k, str(v)) for k,v in filters.items() if v!=None)
 
-def get_config(path, **filters):
+
+def get_config(path, directory=None, **filters):
     '''
     Get a subhierarchy of configuration
     '''
     filters = _normalize_filter(filters)
-    config = _get_full_config(filters)
+    config = _get_full_config(directory, filters)
     if isinstance(path, unicode):
         path = path.encode("UTF-8")
     if path in (None, ""):
@@ -245,6 +251,7 @@ def get_config(path, **filters):
         path = path.split(".")
     return reduce(lambda base, prop: base and base.get(prop), path, config)
 
+
 @receiver(signal=onion_config_updated)
 def config_update_receiver(sender, **kwargs):
     _get_full_config.clear()
@@ -252,3 +259,4 @@ def config_update_receiver(sender, **kwargs):
     config.update(settings.ONION_CONFIG_SETTINGS)
 
 config = Config(settings.ONION_CONFIG_SETTINGS)
+
