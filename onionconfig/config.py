@@ -11,23 +11,26 @@ Created on 2012.04.19.
 
 @author: vhermecz
 '''
-import os
-import glob
-from django.dispatch.dispatcher import receiver
-from onionconfig.signals import onion_config_updated
-import logging
-from onionconfig.utils import memoize
-from types import DictType, ListType
-from onionconfig.special_values import DynamicValue, ExplicitNone,\
-    normalize
 from copy import deepcopy
-from django.conf import settings
-import traceback
-import json
-import email
 from datetime import datetime
+from functools import reduce
+import glob
+import json
+import logging
+import email
+import os
+import traceback
+
+from django.conf import settings
+from django.dispatch.dispatcher import receiver
+
+from onionconfig.signals import onion_config_updated
+from onionconfig.special_values import DynamicValue, ExplicitNone, normalize
+from onionconfig.utils import memoize
+
 
 logger = logging.getLogger("onionconfig")
+
 
 class Config(object):
     """
@@ -48,7 +51,7 @@ class Config(object):
         """
         Lame way of providing lazy init, should be enhanced
         """
-        if attr not in ["lazy_init_module","update"] and self.lazy_init_module != None:
+        if attr not in ["lazy_init_module", "update"] and self.lazy_init_module is not None:
             self.update(self.lazy_init_module)
         return super(Config, self).__getattribute__(attr)
 
@@ -58,7 +61,7 @@ class Config(object):
         """
         self.lazy_init_module = None
         module = __import__(module_name, fromlist=[""])
-        self.dimensions = dict((dim.name,dim) for dim in module.DIMENSIONS)
+        self.dimensions = dict((dim.name, dim) for dim in module.DIMENSIONS)
         self.context = getattr(module, "CONTEXT", {})
         self.expansions = getattr(module, "EXPANSIONS", [])
         dir_ = module.LAYER_CONFIG_DIR
@@ -66,16 +69,17 @@ class Config(object):
             dir_ = os.path.dirname(dir_)
         self.directory = dir_
 
+
 class Layer(object):
     '''
     Stores a set of settings for a filtering
     '''
     def __init__(self, fname):
         data = eval(open(fname, "rb").read(), config.context)
-        #data = simplejson.load(open(fname, "rb"))
         assert isinstance(data, dict)
         filters = Layer._normalize_filters(data.pop("__filter", None))
-        self.priority = data.pop("__priority", None) or max(sum([config.dimensions[dim].priority_class for dim in filter_.keys()]) for filter_ in filters)
+        self.priority = data.pop("__priority", None) or max(
+                sum([config.dimensions[dim].priority_class for dim in filter_.keys()]) for filter_ in filters)
         self.filters = Layer._expand_filters(filters)
         self.name = data.pop("__name", None) or os.path.splitext(os.path.basename(fname))[0]
         self.data = data
@@ -84,25 +88,19 @@ class Layer(object):
 
     @staticmethod
     def _validate(data):
-        if data.get("__priority", 1)<=0:
-            raise ValueError, "Priority must be a positive integer"
+        if data.get("__priority", 1) <= 0:
+            raise ValueError("Priority must be a positive integer")
         for dim in set([key for filter_ in Layer._preprocess_filter(data.get("__filter")) for key in filter_.keys()]):
-            if not config.dimensions.has_key(dim):
-                raise ValueError, "Unknown dimension used"
+            if dim not in config.dimensions:
+                raise ValueError("Unknown dimension used")
 
     @staticmethod
     def _normalize_filters(filters):
-        if filters == None:
+        filter_list = []
+        if filters is None:
             filters = {}
-        if type(filters) == DictType:
-            filters = [filters]
-        for filter_ in filters:
-            for dim, value in filter_.iteritems():
-                if type(value) != ListType:
-                    value = [value]
-                value = set(value)
-                filter_[dim] = value
-        return filters
+        filter_list.append(filters)
+        return filter_list
 
     @staticmethod
     def _expand_filters(filters):
@@ -110,15 +108,17 @@ class Layer(object):
         for expansion in config.expansions:
             new_filters = []
             for filter_ in filters:
-                if filter_.has_key(expansion.source_dimension_name):
+                if expansion.source_dimension_name in filter_:
                     target_values = []
                     for value in filter_[expansion.source_dimension_name]:
-                        target_values.extend([normalize(expansion.target_dimension_name, target_value) for target_value in expansion.expand(value)])
+                        target_values.extend(
+                                [normalize(expansion.target_dimension_name, target_value) for
+                                 target_value in expansion.expand(value)]
+                        )
                     new_filter = deepcopy(filter_)
                     del new_filter[expansion.source_dimension_name]
                     new_filter[expansion.target_dimension_name] = set(target_values)
                     new_filters.append(new_filter)
-#                    print "Expanded", filter_, "to", new_filter
             filters.extend(new_filters)
         return filters
 
@@ -138,17 +138,19 @@ class Layer(object):
                 if filter_.get(key) not in value:
                     res = False
                     break
-            if res == True:
+            if res is True:
                 return True
         return False
 
     def get_priority(self):
         return self.priority
 
+
 def _get_config_root():
     return config.directory
 
 INVALID_CONFIG_FILES = []
+
 
 @memoize
 def get_layers(directory=None):
@@ -170,7 +172,6 @@ def get_layers(directory=None):
             INVALID_CONFIG_FILES.append(fname)
             traceback.print_exc()
             logger.error("Invalid configuration layer")
-    res = [item[1] for item in sorted((config.get_priority(), config) for config in res)]
     res = list(reversed(res))
     return res
 
@@ -178,51 +179,51 @@ def get_layers(directory=None):
 def get_applicable_layers(directory, filters):
     return [layer for layer in get_layers(directory) if layer.matches_filter(filters)]
 
+
 @memoize
 def _get_full_config(directory, filters):
     '''
     Get all applicable config layers for filter
     '''
-    # print "get_full_config for ", filters
     def unify_config(high, low):
         '''
         Merge two layers of configuration.
 
         Dicts are blended together, for other constructs high is preferred
         '''
-        assert high == None or isinstance(high, dict)
-        assert low == None or isinstance(low, dict)
+        assert high is None or isinstance(high, dict)
+        assert low is None or isinstance(low, dict)
         res = dict()
         for key in set(high.keys()) | set(low.keys()):
             high_value = high.get(key)
             low_value = low.get(key)
-            if type(high_value) == type(low_value) and type(high_value)==DictType:
+            if type(high_value) == type(low_value) and isinstance(type(high_value), dict):
                 value = unify_config(high_value, low_value)
             else:
-                value = high_value if high_value!=None else low_value
-                value = deepcopy(value) # TODO(vhermecz) only needed if contains DynamicValue
+                value = high_value if high_value is not None else low_value
+                value = deepcopy(value)  # TODO(vhermecz) only needed if contains DynamicValue
                 if isinstance(value, DynamicValue):
-                    print "Dynvalue in unifyconfig"
+                    print("Dynvalue in unifyconfig")
                     value = value.evaluate(filters)
             res[key] = value
         return res
 
     def finalize_config(config):
-        # TODO(vhermecz): skips postporcessing of lists
-        for key, value in config.iteritems():
+        # TODO(vhermecz): skips postprocessing of lists
+        for key, value in config.items():
             if isinstance(value, ExplicitNone):
                 value = None
                 config[key] = value
             elif isinstance(value, DynamicValue):
-                print "Dynvalue in finalize_config"
+                print("Dynvalue in finalize_config")
                 value = value.evaluate(filters)
                 config[key] = value
-            elif type(value) == DictType:
+            elif isinstance(type(value), dict):
                 finalize_config(value)
 
     real_configs = get_applicable_layers(directory, filters)
     real_configs = [item.data for item in real_configs]
-    if len(real_configs)==0:
+    if len(real_configs) == 0:
         return None
     real_config = reduce(unify_config, real_configs, {})
     finalize_config(real_config)
@@ -234,7 +235,7 @@ def _normalize_filter(filters):
     Remove unicode values, as only str should be used here
     Remove entries with None as value
     '''
-    return dict((k, str(v)) for k,v in filters.items() if v!=None)
+    return dict((k, str(v)) for k, v in filters.items() if v is not None)
 
 
 def get_config(path, directory=None, **filters):
@@ -243,8 +244,6 @@ def get_config(path, directory=None, **filters):
     '''
     filters = _normalize_filter(filters)
     config = _get_full_config(directory, filters)
-    if isinstance(path, unicode):
-        path = path.encode("UTF-8")
     if path in (None, ""):
         path = []
     elif isinstance(path, str):
@@ -259,4 +258,3 @@ def config_update_receiver(sender, **kwargs):
     config.update(settings.ONION_CONFIG_SETTINGS)
 
 config = Config(settings.ONION_CONFIG_SETTINGS)
-
