@@ -3,12 +3,13 @@ Created on 2012.05.23.
 
 @author: vhermecz
 '''
-from django.db.models.base import Model
-from django.db.models.fields import FieldDoesNotExist, Field
 import re
-from django.core.exceptions import ObjectDoesNotExist
 import logging
-from types import StringType
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models.base import Model
+from django.db.models.fields import Field, FieldDoesNotExist
+
 
 logger = logging.getLogger("onionconfig")
 
@@ -33,7 +34,7 @@ class BaseDimension(object):
     priority_class = 0
     valueset = []
     
-    def __init__(self, name, label=name, description=None, priority_class=0, valueset = list()):
+    def __init__(self, name, label=name, description=None, priority_class=0, valueset=list()):
         self.name = name
         self.label = label
         self.description = description
@@ -41,7 +42,7 @@ class BaseDimension(object):
         self.valueset = valueset
         
     def normalize_value(self, value):
-        if type(value) == StringType:
+        if isinstance(type(value), str):
             return value
         else:
             raise NotImplementedError
@@ -55,6 +56,7 @@ class BaseDimension(object):
         """
         return self.valueset
 
+
 def case_camel_to_underscore(name):
     """
     Convert CamelCase identifiers to underscore_style_ones.
@@ -63,6 +65,7 @@ def case_camel_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
+
 class DynamicValueset(object):
     """
     Dynamically evaluable valueset
@@ -70,8 +73,10 @@ class DynamicValueset(object):
     """
     def __init__(self):
         pass
+
     def get_values(self):
         raise NotImplementedError
+
     @staticmethod
     def for_field(field):
         has_choices = len(field.flatchoices)
@@ -79,6 +84,7 @@ class DynamicValueset(object):
             return DBChoiceDynamicValueset(field)
         else:
             return DBValuesDynamicValueset(field)
+
 
 class DBChoiceDynamicValueset(DynamicValueset):
     """
@@ -88,8 +94,10 @@ class DBChoiceDynamicValueset(DynamicValueset):
         super(DBChoiceDynamicValueset, self).__init__()
         assert isinstance(field, Field)
         self.field = field
+
     def get_values(self):
-        return (k for k,v in self.field.flatchoices)
+        return (k for k, v in self.field.flatchoices)
+
 
 class DBValuesDynamicValueset(DynamicValueset):
     """
@@ -99,9 +107,11 @@ class DBValuesDynamicValueset(DynamicValueset):
         super(DBValuesDynamicValueset, self).__init__()
         assert isinstance(field, Field)
         self.field = field
+
+    # http://stackoverflow.com/questions/2526445/django-query-to-get-a-unique-set-based-on-a-particular-columns-value
     def get_values(self):
-        # from http://stackoverflow.com/questions/2526445/django-query-to-get-a-unique-set-based-on-a-particular-columns-value
         return list(self.field.model.objects.values_list(self.field.name, flat=True).distinct())
+
 
 class ModelFieldDimension(BaseDimension):
     """
@@ -114,11 +124,11 @@ class ModelFieldDimension(BaseDimension):
     """
     def __init__(self, model, field_name, name=None, label=None, description=None, priority_class=0):
         if not issubclass(model, Model):
-            raise ValueError, "model should be subclass of Django base model"
+            raise ValueError("model should be subclass of Django base model")
         try:
             field = model._meta.get_field(field_name)
         except FieldDoesNotExist:
-            raise ValueError, "field does not exists in model"
+            raise ValueError("field does not exists in model")
         if not name:
             name = model._meta.module_name
             if not field.primary_key:
@@ -148,9 +158,10 @@ class ModelFieldDimension(BaseDimension):
         String repr of dimension value converted to object
         """
         try:
-            return self.model.objects.get(**{self.field_name:value})
+            return self.model.objects.get(**{self.field_name: value})
         except ObjectDoesNotExist:
             logger.error("denormalize called on invalid value. Probably due to missing validation")
+
 
 class Expansion(object):
     """
@@ -165,6 +176,7 @@ class Expansion(object):
         self.source_dimension_name = source_dimension_name
         self.target_dimension_name = target_dimension_name
         self.expansion_function = expansion_function
+
     def expand(self, source_value):
         try:
             return self.expansion_function(source_value)
