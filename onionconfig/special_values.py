@@ -3,11 +3,13 @@ Created on 2012.05.23.
 
 @author: vhermecz
 '''
-from onionconfig.metaconfig import ModelFieldDimension
 import logging
-from types import StringType
+
+from onionconfig.metaconfig import ModelFieldDimension
+
 
 logger = logging.getLogger("onionconfig")
+
 
 class ExplicitNone(object):
     """
@@ -20,6 +22,7 @@ class ExplicitNone(object):
     def __init__(self):
         pass
 
+
 class DynamicValue(object):
     """
     Baseclass for dynamic config value
@@ -28,6 +31,7 @@ class DynamicValue(object):
     """
     def __init__(self):
         pass
+
     def evaluate(self, filters):
         """
         Return actual value of the setting
@@ -36,6 +40,7 @@ class DynamicValue(object):
         @note Return ExplicitNone if None is intended to be the actual value
         """
         return None
+
 
 class ModelDimensionValue(DynamicValue):
     """
@@ -49,15 +54,14 @@ class ModelDimensionValue(DynamicValue):
     def evaluate(self, filters):
         if filters.has_key(self.dimension_name):
             obj = denormalize(self.dimension_name, filters[self.dimension_name])
-            if obj==None:
-                # log error
+            if obj is None:
                 return None
             try:
                 return getattr(obj, self.field_name)
             except AttributeError:
-                # log error
                 return None
-            
+
+
 def denormalize(dimension_name, value):
     """
     Retrieve object representation of a dimension value
@@ -72,13 +76,14 @@ def denormalize(dimension_name, value):
     object_ = dimension.denormalize_value(value)
     return object_
 
+
 def normalize(dimension_name, value):
     """
     Convert object representation of a dimension value into string
     
     TODO(vhermecz): ducktyping should be used instead of inheritence 
     """
-    if type(value) == StringType:
+    if isinstance(type(value), str):
         return value
     from onionconfig.config import config
     dimension = config.dimensions.get(dimension_name)
@@ -86,4 +91,3 @@ def normalize(dimension_name, value):
         logger.error("normalize called on dimension not supporting it")
         return None
     return dimension.normalize_value(value)
-    
