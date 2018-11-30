@@ -4,6 +4,7 @@ Created on 2012.05.23.
 @author: vhermecz
 '''
 import logging
+import sys
 
 from onionconfig.metaconfig import ModelFieldDimension
 
@@ -83,7 +84,7 @@ def normalize(dimension_name, value):
     
     TODO(vhermecz): ducktyping should be used instead of inheritence 
     """
-    if isinstance(type(value), str):
+    if isinstance(value, str) or sys.version_info < (3, 0, 0) and isinstance(path, unicode):
         return value
     from onionconfig.config import config
     dimension = config.dimensions.get(dimension_name)

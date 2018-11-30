@@ -19,6 +19,7 @@ import json
 import logging
 import email
 import os
+import sys
 import traceback
 
 from django.conf import settings
@@ -75,6 +76,7 @@ class Layer(object):
     Stores a set of settings for a filtering
     '''
     def __init__(self, fname):
+
         data = eval(open(fname, "rb").read(), config.context)
         assert isinstance(data, dict)
         filters = Layer._normalize_filters(data.pop("__filter", None))
@@ -135,7 +137,7 @@ class Layer(object):
         for layer_filter in self.filters:
             res = True
             for key, value in layer_filter.items():
-                if filter_.get(key) not in value:
+                if filter_.get(key) and filter_[key] not in value:
                     res = False
                     break
             if res is True:
@@ -172,7 +174,8 @@ def get_layers(directory=None):
             INVALID_CONFIG_FILES.append(fname)
             traceback.print_exc()
             logger.error("Invalid configuration layer")
-    res = list(reversed(res))
+
+    res.sort(key=lambda x: x.get_priority(), reverse=True)
     return res
 
 
@@ -194,10 +197,11 @@ def _get_full_config(directory, filters):
         assert high is None or isinstance(high, dict)
         assert low is None or isinstance(low, dict)
         res = dict()
+
         for key in set(high.keys()) | set(low.keys()):
             high_value = high.get(key)
             low_value = low.get(key)
-            if type(high_value) == type(low_value) and isinstance(type(high_value), dict):
+            if type(high_value) == type(low_value) and isinstance(high_value, dict):
                 value = unify_config(high_value, low_value)
             else:
                 value = high_value if high_value is not None else low_value
@@ -223,6 +227,7 @@ def _get_full_config(directory, filters):
 
     real_configs = get_applicable_layers(directory, filters)
     real_configs = [item.data for item in real_configs]
+
     if len(real_configs) == 0:
         return None
     real_config = reduce(unify_config, real_configs, {})
@@ -240,14 +245,20 @@ def _normalize_filter(filters):
 
 def get_config(path, directory=None, **filters):
     '''
-    Get a subhierarchy of configuration
+    Get a sub-hierarchy of configuration
     '''
     filters = _normalize_filter(filters)
     config = _get_full_config(directory, filters)
+
+    if sys.version_info < (3, 0, 0) and isinstance(path, unicode):
+        path = path.encode("UTF-8")
+
     if path in (None, ""):
         path = []
+
     elif isinstance(path, str):
         path = path.split(".")
+
     return reduce(lambda base, prop: base and base.get(prop), path, config)
 
 

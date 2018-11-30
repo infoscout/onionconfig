@@ -3,8 +3,9 @@ Created on 2012.05.23.
 
 @author: vhermecz
 '''
-import re
 import logging
+import re
+import sys
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.base import Model
@@ -42,7 +43,7 @@ class BaseDimension(object):
         self.valueset = valueset
         
     def normalize_value(self, value):
-        if isinstance(type(value), str):
+        if isinstance(value, str) or sys.version_info < (3, 0, 0) and isinstance(path, unicode):
             return value
         else:
             raise NotImplementedError
