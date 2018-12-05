@@ -222,7 +222,7 @@ def _get_full_config(directory, filters):
                 print("Dynvalue in finalize_config")
                 value = value.evaluate(filters)
                 config[key] = value
-            elif isinstance(type(value), dict):
+            elif isinstance(value, dict):
                 finalize_config(value)
 
     real_configs = get_applicable_layers(directory, filters)
