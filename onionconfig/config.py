@@ -76,12 +76,14 @@ class Layer(object):
     Stores a set of settings for a filtering
     '''
     def __init__(self, fname):
-
         data = eval(open(fname, "rb").read(), config.context)
         assert isinstance(data, dict)
         filters = Layer._normalize_filters(data.pop("__filter", None))
         self.priority = data.pop("__priority", None) or max(
-                sum([config.dimensions[dim].priority_class for dim in filter_.keys()]) for filter_ in filters)
+                sum([
+                    config.dimensions[dim].priority_class for dim in filter_.keys()
+                ]) for filter_ in filters
+        )
         self.filters = Layer._expand_filters(filters)
         self.name = data.pop("__name", None) or os.path.splitext(os.path.basename(fname))[0]
         self.data = data
@@ -113,10 +115,10 @@ class Layer(object):
                 if expansion.source_dimension_name in filter_:
                     target_values = []
                     for value in filter_[expansion.source_dimension_name]:
-                        target_values.extend(
-                                [normalize(expansion.target_dimension_name, target_value) for
-                                 target_value in expansion.expand(value)]
-                        )
+                        target_values.extend([
+                            normalize(expansion.target_dimension_name, target_value)
+                            for target_value in expansion.expand(value)
+                        ])
                     new_filter = deepcopy(filter_)
                     del new_filter[expansion.source_dimension_name]
                     new_filter[expansion.target_dimension_name] = set(target_values)

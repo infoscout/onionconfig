@@ -9,7 +9,7 @@ from onionconfig.signals import onion_config_updated
 
 def view_status(request):
     
-    if request.GET.get('reload', None) != None:
+    if request.GET.get('reload', None) is not None:
         onion_config_updated.send(None)
     
     filter_form = FilterForm(request.GET)
@@ -22,7 +22,7 @@ def view_status(request):
         path = ""
         filters = {}
 
-    filters = dict((k, v) for k, v in filters.items() if len(v))
+    filters = {k: v for k, v in filters.items() if len(v)}
 
     context = {
         'filter_form': filter_form,
