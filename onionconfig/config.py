@@ -98,11 +98,17 @@ class Layer(object):
 
     @staticmethod
     def _normalize_filters(filters):
-        filter_list = []
-        if filters is None:
+        if not filters:
             filters = {}
-        filter_list.append(filters)
-        return filter_list
+        if isinstance(filters, dict):
+            filters = [filters]
+        for filter_ in filters:
+            for dim, value in filter_.items():
+                if not isinstance(value, list):
+                    value = [value]
+                value = set(value)
+                filter_[dim] = value
+        return filters
 
     @staticmethod
     def _expand_filters(filters):
