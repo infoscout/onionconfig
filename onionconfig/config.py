@@ -179,7 +179,7 @@ def get_layers(directory=None):
             global INVALID_CONFIG_FILES
             INVALID_CONFIG_FILES.append(fname)
             traceback.print_exc()
-            logger.error("Invalid configuration layer")
+            logger.error("Invalid configuration layer in file: {}".format(fname), exc_info=True)
 
     res.sort(key=lambda x: x.get_priority(), reverse=True)
     return res
