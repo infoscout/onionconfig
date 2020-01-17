@@ -53,7 +53,7 @@ class ModelDimensionValue(DynamicValue):
         self.field_name = field_name
     
     def evaluate(self, filters):
-        if filters.has_key(self.dimension_name):
+        if self.dimension_name in filters:
             obj = denormalize(self.dimension_name, filters[self.dimension_name])
             if obj is None:
                 return None
