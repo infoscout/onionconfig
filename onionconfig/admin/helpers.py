@@ -7,9 +7,10 @@ from collections import namedtuple
 
 ResultSetItem = namedtuple("ResultSetItem", "name priority filename is_active")
 
+
 def create_layer_list(filters):
     from onionconfig.config import get_layers, get_applicable_layers
-    
+
     data = []
     all_layers = get_layers()
     active_layers = get_applicable_layers(filters)
