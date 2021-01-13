@@ -11,46 +11,45 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.base import Model
 from django.db.models.fields import Field, FieldDoesNotExist
 
-
 logger = logging.getLogger("onionconfig")
 
 
 class BaseDimension(object):
     """
     Root class for onoinconfig dimensions
-    
+
     A dimension defines a filtering for config retrieval.
     @ivar label: The label of dimension as represented on the UI
     @ivar name: The programmatic name as how the dimension is referred to in filters
     @ivar description: A longer definition of the dimension
     @ivar priority_class: The priority value assigned to this dimension
     @ivar valuset: The values the dimension holds
-    
+
     Dimensions should be defined in the main onionconfig configuration file
-    
+
     """
     label = None
     name = None
     description = None
     priority_class = 0
     valueset = []
-    
+
     def __init__(self, name, label=name, description=None, priority_class=0, valueset=list()):
         self.name = name
         self.label = label
         self.description = description
         self.priority_class = priority_class
         self.valueset = valueset
-        
+
     def normalize_value(self, value):
-        if isinstance(value, str) or sys.version_info < (3, 0, 0) and isinstance(path, unicode):
+        if isinstance(value, str) or sys.version_info < (3, 0, 0) and isinstance(path, str):
             return value
         else:
             raise NotImplementedError
 
     def is_valid_value(self, value):
         return value in self.get_valueset()
-        
+
     def get_valueset(self):
         """
         The values supported by this dimension
@@ -72,6 +71,7 @@ class DynamicValueset(object):
     Dynamically evaluable valueset
     @note: Dynamic approach is not currently utilized
     """
+
     def __init__(self):
         pass
 
@@ -89,8 +89,9 @@ class DynamicValueset(object):
 
 class DBChoiceDynamicValueset(DynamicValueset):
     """
-    Model field based Valuset for fields with choice constraint 
+    Model field based Valuset for fields with choice constraint
     """
+
     def __init__(self, field):
         super(DBChoiceDynamicValueset, self).__init__()
         assert isinstance(field, Field)
@@ -104,6 +105,7 @@ class DBValuesDynamicValueset(DynamicValueset):
     """
     Model field based Valueset based on field values in DB
     """
+
     def __init__(self, field):
         super(DBValuesDynamicValueset, self).__init__()
         assert isinstance(field, Field)
@@ -117,12 +119,13 @@ class DBValuesDynamicValueset(DynamicValueset):
 class ModelFieldDimension(BaseDimension):
     """
     Model fields based dimension
-    
+
     @ivar name: Default name is the lowercase table name for primary keys, otherwise extended with underscore_style field_name
     @ivar label: Default label is table/field verbose name depending on whether field is primary key
     @ivar description: Defaults to the label
-  
+
     """
+
     def __init__(self, model, field_name, name=None, label=None, description=None, priority_class=0):
         if not issubclass(model, Model):
             raise ValueError("model should be subclass of Django base model")
@@ -153,7 +156,7 @@ class ModelFieldDimension(BaseDimension):
         if isinstance(value, self.model):
             return getattr(value, self.field_name)
         return value
-    
+
     def denormalize_value(self, value):
         """
         String repr of dimension value converted to object
@@ -170,9 +173,10 @@ class Expansion(object):
     @ivar source_dimension_name: Name of the source dimension
     @ivar target_dimension_name: Name of the target dimension
     @ivar expansion_function: The expansion operation
-    
-    Expansion function should return a list of values in the target dimension either in normalized or denormalized format 
+
+    Expansion function should return a list of values in the target dimension either in normalized or denormalized format
     """
+
     def __init__(self, source_dimension_name, target_dimension_name, expansion_function):
         self.source_dimension_name = source_dimension_name
         self.target_dimension_name = target_dimension_name

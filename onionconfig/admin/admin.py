@@ -1,7 +1,5 @@
 from django.conf.urls import url
-
 from isc_admin.admin_site import AdminApp
-
 from onionconfig.admin.views import view_status
 
 

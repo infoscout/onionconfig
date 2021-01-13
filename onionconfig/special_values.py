@@ -8,18 +8,18 @@ import sys
 
 from onionconfig.metaconfig import ModelFieldDimension
 
-
 logger = logging.getLogger("onionconfig")
 
 
 class ExplicitNone(object):
     """
     Explicit marker for None
-    
+
     While None values are overridden by layers with lower priority,
     the explicit None is accepted as the real value, rendered as
     None in the result
     """
+
     def __init__(self):
         pass
 
@@ -27,16 +27,17 @@ class ExplicitNone(object):
 class DynamicValue(object):
     """
     Baseclass for dynamic config value
-    
+
     Evaluated in the context of the filter applied for setting retrieval
     """
+
     def __init__(self):
         pass
 
     def evaluate(self, filters):
         """
         Return actual value of the setting
-        
+
         @note Default behavoiur is to be transparent
         @note Return ExplicitNone if None is intended to be the actual value
         """
@@ -47,11 +48,12 @@ class ModelDimensionValue(DynamicValue):
     """
     Retrieve model property as part of settings
     """
+
     def __init__(self, dimension_name, field_name):
         super(ModelDimensionValue, self).__init__()
         self.dimension_name = dimension_name
         self.field_name = field_name
-    
+
     def evaluate(self, filters):
         if self.dimension_name in filters:
             obj = denormalize(self.dimension_name, filters[self.dimension_name])
@@ -66,8 +68,8 @@ class ModelDimensionValue(DynamicValue):
 def denormalize(dimension_name, value):
     """
     Retrieve object representation of a dimension value
-    
-    TODO(vhermecz): ducktyping should be used instead of inheritence 
+
+    TODO(vhermecz): ducktyping should be used instead of inheritence
     """
     from onionconfig.config import config
     dimension = config.dimensions.get(dimension_name)
@@ -81,10 +83,10 @@ def denormalize(dimension_name, value):
 def normalize(dimension_name, value):
     """
     Convert object representation of a dimension value into string
-    
-    TODO(vhermecz): ducktyping should be used instead of inheritence 
+
+    TODO(vhermecz): ducktyping should be used instead of inheritence
     """
-    if isinstance(value, str) or sys.version_info < (3, 0, 0) and isinstance(path, unicode):
+    if isinstance(value, str) or sys.version_info < (3, 0, 0) and isinstance(path, str):
         return value
     from onionconfig.config import config
     dimension = config.dimensions.get(dimension_name)

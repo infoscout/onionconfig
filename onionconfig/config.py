@@ -3,32 +3,27 @@ Simple layered configuration
 
 Blends together settings based on filter values.
 
-One can define global settings without any filters. Then provide specialization for 
+One can define global settings without any filters. Then provide specialization for
 specific filters. A possible usage is to customize behaviour of a submodule based on
-the banner it processes... 
+the banner it processes...
 
 Created on 2012.04.19.
 
 @author: vhermecz
 '''
-from copy import deepcopy
-from datetime import datetime
-from functools import reduce
 import glob
-import json
 import logging
-import email
 import os
 import sys
 import traceback
+from copy import deepcopy
+from functools import reduce
 
 from django.conf import settings
 from django.dispatch.dispatcher import receiver
-
 from onionconfig.signals import onion_config_updated
 from onionconfig.special_values import DynamicValue, ExplicitNone, normalize
 from onionconfig.utils import memoize
-
 
 logger = logging.getLogger("onionconfig")
 
@@ -75,12 +70,13 @@ class Layer(object):
     '''
     Stores a set of settings for a filtering
     '''
+
     def __init__(self, fname):
         data = eval(open(fname, "rb").read(), config.context)
         assert isinstance(data, dict)
         filters = Layer._normalize_filters(data.pop("__filter", None))
         self.priority = data.pop("__priority", None) or max(sum([config.dimensions[dim].priority_class
-                                                                 for dim in filter_.keys()
+                                                                 for dim in list(filter_.keys())
                                                                  ]) for filter_ in filters)
         self.filters = Layer._expand_filters(filters)
         self.name = data.pop("__name", None) or os.path.splitext(os.path.basename(fname))[0]
@@ -92,7 +88,8 @@ class Layer(object):
     def _validate(data):
         if data.get("__priority", 1) <= 0:
             raise ValueError("Priority must be a positive integer")
-        for dim in set([key for filter_ in Layer._preprocess_filter(data.get("__filter")) for key in filter_.keys()]):
+        for dim in set([key for filter_ in Layer._preprocess_filter(data.get("__filter"))
+                        for key in list(filter_.keys())]):
             if dim not in config.dimensions:
                 raise ValueError("Unknown dimension used")
 
@@ -103,7 +100,7 @@ class Layer(object):
         if isinstance(filters, dict):
             filters = [filters]
         for filter_ in filters:
-            for dim, value in filter_.items():
+            for dim, value in list(filter_.items()):
                 if not isinstance(value, list):
                     value = [value]
                 value = set(value)
@@ -142,7 +139,7 @@ class Layer(object):
         '''
         for layer_filter in self.filters:
             res = True
-            for key, value in layer_filter.items():
+            for key, value in list(layer_filter.items()):
                 if filter_.get(key) and filter_[key] not in value:
                     res = False
                     break
@@ -156,6 +153,7 @@ class Layer(object):
 
 def _get_config_root():
     return config.directory
+
 
 INVALID_CONFIG_FILES = []
 
@@ -207,7 +205,7 @@ def _get_full_config(directory, filters):
         for key in set(high.keys()) | set(low.keys()):
             high_value = high.get(key)
             low_value = low.get(key)
-            if type(high_value) == type(low_value) and isinstance(high_value, dict):
+            if isinstance(high_value, type(low_value)) and isinstance(high_value, dict):
                 value = unify_config(high_value, low_value)
             else:
                 value = high_value if high_value is not None else low_value
@@ -220,7 +218,7 @@ def _get_full_config(directory, filters):
 
     def finalize_config(config):
         # TODO(vhermecz): skips postprocessing of lists
-        for key, value in config.items():
+        for key, value in list(config.items()):
             if isinstance(value, ExplicitNone):
                 value = None
                 config[key] = value
@@ -246,7 +244,7 @@ def _normalize_filter(filters):
     Remove unicode values, as only str should be used here
     Remove entries with None as value
     '''
-    return dict((k, str(v)) for k, v in filters.items() if v is not None)
+    return dict((k, str(v)) for k, v in list(filters.items()) if v is not None)
 
 
 def get_config(path, directory=None, **filters):
@@ -256,7 +254,7 @@ def get_config(path, directory=None, **filters):
     filters = _normalize_filter(filters)
     config = _get_full_config(directory, filters)
 
-    if sys.version_info < (3, 0, 0) and isinstance(path, unicode):
+    if sys.version_info < (3, 0, 0) and isinstance(path, str):
         path = path.encode("UTF-8")
 
     if path in (None, ""):
@@ -273,5 +271,6 @@ def config_update_receiver(sender, **kwargs):
     _get_full_config.clear()
     get_layers.clear()
     config.update(settings.ONION_CONFIG_SETTINGS)
+
 
 config = Config(settings.ONION_CONFIG_SETTINGS)
